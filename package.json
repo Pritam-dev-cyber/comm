@@ -1,0 +1,28 @@
+{
+  "name": "commconnect-website",
+  "version": "1.0.0",
+  "description": "Business communications website with payment integration",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
+  },
+  "keywords": [
+    "business",
+    "communications",
+    "voip",
+    "phone",
+    "stripe"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "stripe": "^14.10.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
