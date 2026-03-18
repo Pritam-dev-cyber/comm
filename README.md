@@ -1,230 +1,90 @@
 # Laxsiy Connect - Business Communications Website
 
-A modern business communications website for Laxsiy Connect with integrated Stripe payments, contact form email delivery, and structured static pages.
+A business communications website for Laxsiy Connect with INR pricing, Razorpay checkout, contact form email delivery, and structured static content pages.
 
 ## Features
 
-- 🎨 **Modern Design**: Clean, professional design inspired by leading hosting/communications providers
-- 📱 **Responsive Layout**: Works perfectly on desktop, tablet, and mobile devices
-- 💳 **Payment Integration**: Full Stripe payment processing with support for credit cards and 3D Secure
-- 🔒 **Secure**: Industry-standard security practices and HTTPS ready
-- ⚡ **Fast Performance**: Optimized assets and efficient code
-- 📧 **Contact Form**: Functional contact form for customer inquiries
-- 🎯 **Modern UI/UX**: Smooth animations, intuitive navigation, and engaging user experience
+- Responsive marketing site with pricing, testimonials, and contact sections
+- Server-driven INR pricing with USD to INR conversion and caching
+- Razorpay order creation and payment signature verification
+- Contact form email delivery to `support@laxsiy.com`
+- Structured static pages under `public/pages`
 
 ## Tech Stack
 
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
-- **Backend**: Node.js, Express.js
-- **Payment Processing**: Stripe API
-- **Styling**: Custom CSS with CSS Grid and Flexbox
-- **Icons**: Font Awesome
+- Frontend: HTML, CSS, JavaScript
+- Backend: Node.js, Express
+- Payments: Razorpay
+- Email: Nodemailer
 
-## Getting Started
+## Setup
 
-### Prerequisites
-
-- Node.js (v14 or higher)
-- npm or yarn
-- Stripe account (for payment processing)
-
-### Installation
-
-1. **Clone the repository** (or use this directory):
-   ```bash
-   cd path/to/pers_wordprs_website
-   ```
-
-2. **Install dependencies**:
+1. Install dependencies:
    ```bash
    npm install
    ```
+2. Copy `.env.example` to `.env`.
+3. Set your Razorpay and email credentials in `.env`:
+   ```env
+   RAZORPAY_KEY_ID=rzp_test_your_key_id_here
+   RAZORPAY_KEY_SECRET=your_razorpay_key_secret_here
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_USER=your_email@gmail.com
+   EMAIL_PASSWORD=your_email_app_password
+   EMAIL_FROM=your_email@gmail.com
+   SUPPORT_EMAIL=support@laxsiy.com
+   ```
+4. Start the app:
+   ```bash
+   npm run dev
+   ```
 
-3. **Set up environment variables**:
-   - Copy `.env.example` to `.env`:
-     ```bash
-     copy .env.example .env
-     ```
-   - Get your Stripe API keys from [Stripe Dashboard](https://dashboard.stripe.com/test/apikeys)
-   - Update `.env` with your actual Stripe keys:
-     ```
-     STRIPE_SECRET_KEY=sk_test_your_actual_key_here
-     STRIPE_PUBLISHABLE_KEY=pk_test_your_actual_key_here
-     ```
-
-4. **Update Stripe Publishable Key in frontend**:
-   - Open `public/js/main.js`
-   - Replace the Stripe publishable key on line 2 with your actual key:
-     ```javascript
-     const stripe = Stripe('pk_test_your_actual_key_here');
-     ```
-
-### Running the Application
-
-#### Development Mode (with auto-restart):
-```bash
-npm run dev
-```
-
-#### Production Mode:
-```bash
-npm start
-```
-
-The website will be available at `http://localhost:3000`
+The site runs at `http://localhost:3000`.
 
 ## Project Structure
 
-```
+```text
 pers_wordprs_website/
-├── public/                 # Frontend files
-│   ├── css/
-│   │   └── style.css      # Main stylesheet
-│   ├── js/
-│   │   └── main.js        # Frontend JavaScript
-│   ├── images/            # Image assets
-│   └── index.html         # Main HTML file
-├── server/                # Backend files
-│   └── server.js          # Express server
-├── .env.example           # Environment variables template
-├── .gitignore            # Git ignore file
-├── package.json          # Dependencies and scripts
-└── README.md             # This file
+|-- public/
+|   |-- css/
+|   |   |-- pages.css
+|   |   `-- style.css
+|   |-- js/
+|   |   `-- main.js
+|   |-- pages/
+|   |   |-- company/
+|   |   |-- legal/
+|   |   |-- products/
+|   |   `-- support/
+|   `-- index.html
+|-- server/
+|   `-- server.js
+|-- .env.example
+|-- package.json
+`-- README.md
 ```
 
-## Features Breakdown
+## Payments
 
-### 1. Homepage Hero
-- Eye-catching gradient background
-- Clear value proposition
-- Pricing preview
-- Trust indicators (ratings, guarantees)
+- The frontend requests `/api/create-order` for the selected plan.
+- The browser opens Razorpay Checkout using the returned order ID.
+- After payment, the frontend posts the Razorpay response to `/api/verify-payment`.
+- The server verifies the payment signature before confirming success.
 
-### 2. Features Section
-- 6 key features with icons
-- Hover animations
-- Responsive grid layout
+## Pricing
 
-### 3. Pricing Plans
-- Three tier pricing (Starter, Professional, Enterprise)
-- Discount badges
-- Feature comparison
-- Direct payment integration
+- Base plan prices are defined in `server/server.js` in USD.
+- The server converts them to INR using a cached exchange rate.
+- The frontend loads pricing from `/api/pricing`.
 
-### 4. Payment Processing
-- Stripe integration
-- Secure card processing
-- 3D Secure support
-- Real-time validation
-- Success/error handling
+## Contact Form
 
-### 5. Testimonials
-- Customer reviews
-- 5-star ratings
-- Avatar displays
+- The contact form submits to `/api/contact`.
+- The server sends messages to `support@laxsiy.com` using the configured SMTP account.
 
-### 6. Contact Section
-- Contact information
-- Working contact form
-- Multiple contact methods
+## Notes
 
-### 7. Footer
-- Company information
-- Quick links
-- Social media links
-- Payment method icons
-
-## Payment Testing
-
-Use Stripe's test card numbers:
-
-- **Successful payment**: `4242 4242 4242 4242`
-- **3D Secure required**: `4000 0027 6000 3184`
-- **Declined payment**: `4000 0000 0000 0002`
-
-Use any future expiry date, any 3-digit CVC, and any billing ZIP code.
-
-## Customization
-
-### Changing Colors
-Edit CSS variables in `public/css/style.css`:
-```css
-:root {
-    --primary-color: #4F46E5;
-    --secondary-color: #10B981;
-    --dark-color: #1F2937;
-    /* ... more colors */
-}
-```
-
-### Adding New Pages
-1. Place section pages under `public/pages/products`, `public/pages/support`, `public/pages/company`, or `public/pages/legal`
-2. Reuse `public/css/pages.css` for static content pages
-3. Link to them from `public/index.html` or the relevant page group
-
-### Modifying Pricing Plans
-Update the server-side base pricing in `server/server.js`. The frontend pricing on `public/index.html` is populated from `/api/pricing`.
-
-## Production Deployment
-
-### Before Deploying:
-
-1. **Get production Stripe keys** from Stripe Dashboard
-2. **Set up Stripe webhook** for production events
-3. **Update environment variables** with production values
-4. **Enable HTTPS** (required for Stripe)
-5. **Set NODE_ENV to production**:
-   ```
-   NODE_ENV=production
-   ```
-
-### Deployment Options:
-
-- **Heroku**: Easy deployment with automatic HTTPS
-- **DigitalOcean**: Full control with droplets
-- **AWS EC2**: Scalable cloud hosting
-- **Vercel/Netlify**: For static frontend (need separate backend)
-
-## Security Considerations
-
-- ✅ Never commit `.env` file
-- ✅ Use environment variables for all secrets
-- ✅ Validate all user inputs
-- ✅ Use HTTPS in production
-- ✅ Keep dependencies updated
-- ✅ Implement rate limiting for API endpoints
-- ✅ Add CSRF protection for forms
-
-## Future Enhancements
-
-- [ ] User authentication system
-- [ ] Customer dashboard
-- [ ] Email notifications (welcome, receipts)
-- [ ] Database integration (MongoDB/PostgreSQL)
-- [ ] Admin panel
-- [ ] Blog section
-- [ ] Live chat support
-- [ ] Multi-language support
-- [ ] Analytics integration
-
-## Support
-
-For issues or questions:
-- Check Stripe documentation: https://stripe.com/docs
-- Review Express.js docs: https://expressjs.com
-- Open an issue in the repository
-
-## License
-
-MIT License - feel free to use this project for your own purposes.
-
-## Credits
-
-- Design inspired by MilesWeb
-- Content theme inspired by Ooma
-- Built with modern web technologies
-- Payment processing by Stripe
-
----
-
-**Note**: This project is set up for Laxsiy Connect. Review the remaining placeholder content, social links, and legal text before going live.
+- Review the legal pages and social links before production use.
+- Keep `.env` out of version control.
+- Use HTTPS in production.

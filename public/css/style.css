@@ -840,12 +840,6 @@ body.pricing-pending #enterprisePriceNote {
     padding: 0.85rem 1rem;
 }
 
-#card-element {
-    padding: 0.85rem 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-}
-
 #card-errors {
     color: var(--danger-color);
     margin-top: 0.4rem;
@@ -948,7 +942,6 @@ body.pricing-pending #enterprisePriceNote {
     }
 
     #paymentForm .form-group input,
-    #card-element,
     #submitPayment {
         padding-top: 0.8rem;
         padding-bottom: 0.8rem;

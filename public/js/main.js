@@ -1,7 +1,4 @@
-// Stripe Configuration
-const stripe = Stripe('pk_test_51QaXfDF88k1xdZSjT0dBaKHKPzEPvKL0YkK8hg9v7YcF4M2TnW3vXGgR5zHh3yL2Nm4Vw6tPq8Rt9Uv2Xw3Yz4Aa00123456'); // Replace with your Stripe publishable key
-let elements;
-let cardElement;
+let razorpayKeyId = '';
 let selectedPlan = {};
 let pricingData = {};
 const currencyFormatter = new Intl.NumberFormat('en-IN', {
@@ -54,6 +51,16 @@ async function loadPricingData() {
     showPricing();
 }
 
+async function loadPaymentConfig() {
+    const response = await fetch('/api/payment-config');
+    if (!response.ok) {
+        throw new Error('Failed to load payment configuration');
+    }
+
+    const result = await response.json();
+    razorpayKeyId = result.razorpayKeyId || '';
+}
+
 // Hamburger Menu
 const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
@@ -83,33 +90,6 @@ const modal = document.getElementById('paymentModal');
 const closeBtn = document.querySelector('.close');
 const pricingButtons = document.querySelectorAll('.btn-pricing');
 
-// Initialize Stripe Elements
-function initializeStripe() {
-    elements = stripe.elements();
-    cardElement = elements.create('card', {
-        style: {
-            base: {
-                fontSize: '16px',
-                color: '#374151',
-                '::placeholder': {
-                    color: '#9CA3AF',
-                },
-            },
-        },
-    });
-    cardElement.mount('#card-element');
-
-    // Handle real-time validation errors
-    cardElement.on('change', (event) => {
-        const displayError = document.getElementById('card-errors');
-        if (event.error) {
-            displayError.textContent = event.error.message;
-        } else {
-            displayError.textContent = '';
-        }
-    });
-}
-
 // Open payment modal
 pricingButtons.forEach(button => {
     button.addEventListener('click', (e) => {
@@ -134,11 +114,6 @@ pricingButtons.forEach(button => {
         `;
         
         modal.style.display = 'block';
-        
-        // Initialize Stripe if not already done
-        if (!cardElement) {
-            initializeStripe();
-        }
     });
 });
 
@@ -164,80 +139,93 @@ if (paymentForm) {
         const submitButton = document.getElementById('submitPayment');
         const buttonText = document.getElementById('button-text');
         const spinner = document.getElementById('spinner');
+        const cardErrors = document.getElementById('card-errors');
         
         // Disable button and show loading
         submitButton.disabled = true;
         buttonText.textContent = 'Processing...';
         spinner.classList.remove('hidden');
+        cardErrors.textContent = '';
         
         try {
-            // Get form data
             const name = document.getElementById('cardholderName').value;
             const email = document.getElementById('email').value;
-            
-            // Create payment method
-            const { error, paymentMethod } = await stripe.createPaymentMethod({
-                type: 'card',
-                card: cardElement,
-                billing_details: {
-                    name: name,
-                    email: email,
-                },
-            });
-            
-            if (error) {
-                // Show error
-                document.getElementById('card-errors').textContent = error.message;
-                submitButton.disabled = false;
-                buttonText.textContent = 'Pay Now';
-                spinner.classList.add('hidden');
-            } else {
-                // Send payment method to server
-                const response = await fetch('/api/create-payment-intent', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        paymentMethodId: paymentMethod.id,
-                        planKey: selectedPlan.key,
-                        customerName: name,
-                        customerEmail: email
-                    }),
-                });
-                
-                const result = await response.json();
-                
-                if (result.error) {
-                    document.getElementById('card-errors').textContent = result.error;
-                    submitButton.disabled = false;
-                    buttonText.textContent = 'Pay Now';
-                    spinner.classList.add('hidden');
-                } else if (result.requiresAction) {
-                    // Handle 3D Secure authentication
-                    const { error: confirmError } = await stripe.confirmCardPayment(
-                        result.clientSecret
-                    );
-                    
-                    if (confirmError) {
-                        document.getElementById('card-errors').textContent = confirmError.message;
-                        submitButton.disabled = false;
-                        buttonText.textContent = 'Pay Now';
-                        spinner.classList.add('hidden');
-                    } else {
-                        // Payment successful
-                        showSuccessMessage();
-                    }
-                } else {
-                    // Payment successful
-                    showSuccessMessage();
-                }
+
+            if (!razorpayKeyId) {
+                throw new Error('Razorpay is not configured');
             }
+
+            const response = await fetch('/api/create-order', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    planKey: selectedPlan.key,
+                    customerName: name,
+                    customerEmail: email
+                }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || result.error) {
+                throw new Error(result.error || 'Failed to create order');
+            }
+
+            submitButton.disabled = false;
+            buttonText.textContent = 'Continue to Razorpay';
+            spinner.classList.add('hidden');
+
+            const razorpayCheckout = new Razorpay({
+                key: razorpayKeyId,
+                amount: result.amount,
+                currency: result.currency,
+                name: 'Laxsiy Connect',
+                description: `Payment for ${result.planName}`,
+                order_id: result.orderId,
+                prefill: {
+                    name,
+                    email
+                },
+                theme: {
+                    color: '#4F46E5'
+                },
+                handler: async (paymentResult) => {
+                    try {
+                        const verifyResponse = await fetch('/api/verify-payment', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(paymentResult),
+                        });
+                        const verifyResult = await verifyResponse.json();
+
+                        if (!verifyResponse.ok || verifyResult.error) {
+                            throw new Error(verifyResult.error || 'Payment verification failed');
+                        }
+
+                        showSuccessMessage();
+                    } catch (verificationError) {
+                        cardErrors.textContent = verificationError.message;
+                    }
+                },
+                modal: {
+                    ondismiss: () => {
+                        buttonText.textContent = 'Continue to Razorpay';
+                        spinner.classList.add('hidden');
+                        submitButton.disabled = false;
+                    }
+                }
+            });
+
+            razorpayCheckout.open();
         } catch (err) {
             console.error('Payment error:', err);
-            document.getElementById('card-errors').textContent = 'An error occurred. Please try again.';
+            cardErrors.textContent = err.message || 'An error occurred. Please try again.';
             submitButton.disabled = false;
-            buttonText.textContent = 'Pay Now';
+            buttonText.textContent = 'Continue to Razorpay';
             spinner.classList.add('hidden');
         }
     });
@@ -249,14 +237,14 @@ function showSuccessMessage() {
     
     // Reset form
     document.getElementById('paymentForm').reset();
-    cardElement.clear();
+    document.getElementById('card-errors').textContent = '';
     
     // Re-enable button
     const submitButton = document.getElementById('submitPayment');
     const buttonText = document.getElementById('button-text');
     const spinner = document.getElementById('spinner');
     submitButton.disabled = false;
-    buttonText.textContent = 'Pay Now';
+    buttonText.textContent = 'Continue to Razorpay';
     spinner.classList.add('hidden');
 }
 
@@ -333,4 +321,8 @@ document.querySelectorAll('.feature-card, .pricing-card, .testimonial-card').for
 loadPricingData().catch((error) => {
     console.error('Pricing load error:', error);
     showPricing();
+});
+
+loadPaymentConfig().catch((error) => {
+    console.error('Payment config load error:', error);
 });
