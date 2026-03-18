@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CommConnect - Smart Business Communications</title>
+    <title>Laxsiy - Smart Business Communications</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body class="pricing-pending">
     <!-- Navigation -->
     <nav class="navbar">
         <div class="container">
             <div class="nav-wrapper">
                 <div class="logo">
                     <i class="fas fa-phone-volume"></i>
-                    <span>CommConnect</span>
+                    <span>Laxsiy Connect</span>
                 </div>
                 <ul class="nav-menu">
                     <li><a href="#home">Home</a></li>
@@ -61,8 +61,8 @@
                     </div>
                     <div class="hero-cta">
                         <div class="price-box">
-                            <span class="old-price">$99.00</span>
-                            <span class="new-price">$24.99</span>
+                            <span class="old-price" id="heroOldPrice">₹8,656.31</span>
+                            <span class="new-price" id="heroNewPrice">₹2,185.06</span>
                             <span class="price-period">/mo</span>
                         </div>
                         <a href="#pricing" class="btn-hero">View Plans</a>
@@ -160,11 +160,11 @@
                     </div>
                     <div class="discount-badge">75% OFF</div>
                     <div class="price">
-                        <span class="old-price">$99.00</span>
-                        <span class="current-price">$24.99</span>
+                        <span class="old-price" id="starterOldPrice">₹8,656.31</span>
+                        <span class="current-price" id="starterCurrentPrice">₹2,185.06</span>
                         <span class="period">/mo</span>
                     </div>
-                    <p class="price-note">For 12 months, you pay $299.88 today - no price increase.</p>
+                    <p class="price-note" id="starterPriceNote">For 12 months, you pay ₹26,220.76 today - no price increase.</p>
                     <button class="btn-pricing" data-plan="starter">Choose Plan</button>
                     <div class="price-guarantee">Same Price at Renewal — Guaranteed</div>
                     <ul class="features-list">
@@ -186,11 +186,11 @@
                     </div>
                     <div class="discount-badge">80% OFF</div>
                     <div class="price">
-                        <span class="old-price">$199.00</span>
-                        <span class="current-price">$39.99</span>
+                        <span class="old-price" id="professionalOldPrice">₹17,400.06</span>
+                        <span class="current-price" id="professionalCurrentPrice">₹3,496.93</span>
                         <span class="period">/mo</span>
                     </div>
-                    <p class="price-note">For 12 months, you pay $479.88 today - no price increase. +2 mo free</p>
+                    <p class="price-note" id="professionalPriceNote">For 12 months, you pay ₹41,961.01 today - no price increase. +2 mo free</p>
                     <button class="btn-pricing" data-plan="professional">Choose Plan</button>
                     <div class="price-guarantee">Same Price at Renewal — Guaranteed</div>
                     <ul class="features-list">
@@ -213,11 +213,11 @@
                     </div>
                     <div class="discount-badge">75% OFF</div>
                     <div class="price">
-                        <span class="old-price">$399.00</span>
-                        <span class="current-price">$99.99</span>
+                        <span class="old-price" id="enterpriseOldPrice">₹34,887.56</span>
+                        <span class="current-price" id="enterpriseCurrentPrice">₹8,742.88</span>
                         <span class="period">/mo</span>
                     </div>
-                    <p class="price-note">For 12 months, you pay $1,199.88 today - no price increase.</p>
+                    <p class="price-note" id="enterprisePriceNote">For 12 months, you pay ₹104,916.01 today - no price increase.</p>
                     <button class="btn-pricing" data-plan="enterprise">Choose Plan</button>
                     <div class="price-guarantee">Same Price at Renewal — Guaranteed</div>
                     <ul class="features-list">
@@ -349,14 +349,14 @@
                         <i class="fas fa-phone"></i>
                         <div>
                             <h4>Call Us</h4>
-                            <p>1-866-343-7929</p>
+                            <p>+1 508 665 5487</p>
                         </div>
                     </div>
                     <div class="contact-item">
                         <i class="fas fa-envelope"></i>
                         <div>
                             <h4>Email Us</h4>
-                            <p>support@commconnect.com</p>
+                            <p>support@laxsiy.com</p>
                         </div>
                     </div>
                     <div class="contact-item">
@@ -376,16 +376,16 @@
                 </div>
                 <form class="contact-form" id="contactForm">
                     <div class="form-group">
-                        <input type="text" placeholder="Your Name" required>
+                        <input type="text" name="name" placeholder="Your Name" required>
                     </div>
                     <div class="form-group">
-                        <input type="email" placeholder="Your Email" required>
+                        <input type="email" name="email" placeholder="Your Email" required>
                     </div>
                     <div class="form-group">
-                        <input type="tel" placeholder="Phone Number">
+                        <input type="tel" name="phone" placeholder="Phone Number">
                     </div>
                     <div class="form-group">
-                        <textarea placeholder="Your Message" rows="5" required></textarea>
+                        <textarea name="message" placeholder="Your Message" rows="5" required></textarea>
                     </div>
                     <button type="submit" class="btn-submit">Send Message</button>
                 </form>
@@ -414,40 +414,40 @@
                 <div class="footer-section">
                     <h4>Products</h4>
                     <ul>
-                        <li><a href="#">Business Phone</a></li>
-                        <li><a href="#">VoIP Solutions</a></li>
-                        <li><a href="#">Video Conferencing</a></li>
-                        <li><a href="#">Mobile Apps</a></li>
-                        <li><a href="#">Enterprise Communications</a></li>
+                        <li><a href="/business-phone.html">Business Phone</a></li>
+                        <li><a href="/voip-solutions.html">VoIP Solutions</a></li>
+                        <li><a href="/video-conferencing.html">Video Conferencing</a></li>
+                        <li><a href="/mobile-apps.html">Mobile Apps</a></li>
+                        <li><a href="/enterprise-communications.html">Enterprise Communications</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
                     <h4>Support</h4>
                     <ul>
-                        <li><a href="#">Help Center</a></li>
-                        <li><a href="#">Knowledge Base</a></li>
-                        <li><a href="#">Video Tutorials</a></li>
-                        <li><a href="#">Contact Support</a></li>
-                        <li><a href="#">System Status</a></li>
+                        <li><a href="/help-center.html">Help Center</a></li>
+                        <li><a href="/knowledge-base.html">Knowledge Base</a></li>
+                        <li><a href="/video-tutorials.html">Video Tutorials</a></li>
+                        <li><a href="/contact-support.html">Contact Support</a></li>
+                        <li><a href="/system-status.html">System Status</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
                     <h4>Company</h4>
                     <ul>
-                        <li><a href="#">About Us</a></li>
-                        <li><a href="#">Customer Reviews</a></li>
-                        <li><a href="#">Blog</a></li>
-                        <li><a href="#">Careers</a></li>
-                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="/about-us.html">About Us</a></li>
+                        <li><a href="/customer-reviews.html">Customer Reviews</a></li>
+                        <li><a href="/blog.html">Blog</a></li>
+                        <li><a href="/careers.html">Careers</a></li>
+                        <li><a href="/contact-us.html">Contact Us</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
                     <h4>Legal</h4>
                     <ul>
-                        <li><a href="#">Privacy Policy</a></li>
-                        <li><a href="#">Terms of Service</a></li>
-                        <li><a href="#">SLA</a></li>
-                        <li><a href="#">Compliance</a></li>
+                        <li><a href="/privacy-policy.html">Privacy Policy</a></li>
+                        <li><a href="/terms-of-service.html">Terms of Service</a></li>
+                        <li><a href="/sla.html">SLA</a></li>
+                        <li><a href="/compliance.html">Compliance</a></li>
                     </ul>
                 </div>
             </div>

@@ -3,31 +3,56 @@ const stripe = Stripe('pk_test_51QaXfDF88k1xdZSjT0dBaKHKPzEPvKL0YkK8hg9v7YcF4M2T
 let elements;
 let cardElement;
 let selectedPlan = {};
+let pricingData = {};
+const currencyFormatter = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2
+});
 
-// Pricing data
-const pricingData = {
-    starter: {
-        name: 'Starter Plan',
-        price: 24.99,
-        period: 'monthly',
-        totalPrice: 299.88,
-        features: '5 phone lines, Unlimited calling (US & Canada)'
-    },
-    professional: {
-        name: 'Professional Plan',
-        price: 39.99,
-        period: 'monthly',
-        totalPrice: 479.88,
-        features: '25 phone lines, Unlimited calling, Video conferencing'
-    },
-    enterprise: {
-        name: 'Enterprise Plan',
-        price: 99.99,
-        period: 'monthly',
-        totalPrice: 1199.88,
-        features: 'Unlimited phone lines, Worldwide calling, 24/7 support'
+function updatePriceText(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = currencyFormatter.format(value);
     }
-};
+}
+
+function updatePriceNote(id, totalPrice, suffix = '') {
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = `For 12 months, you pay ${currencyFormatter.format(totalPrice)} today - no price increase.${suffix}`;
+    }
+}
+
+function showPricing() {
+    document.body.classList.remove('pricing-pending');
+}
+
+async function loadPricingData() {
+    const response = await fetch('/api/pricing');
+    if (!response.ok) {
+        throw new Error('Failed to load pricing');
+    }
+
+    const result = await response.json();
+    pricingData = result.plans;
+
+    updatePriceText('heroOldPrice', pricingData.starter.oldPrice);
+    updatePriceText('heroNewPrice', pricingData.starter.price);
+
+    updatePriceText('starterOldPrice', pricingData.starter.oldPrice);
+    updatePriceText('starterCurrentPrice', pricingData.starter.price);
+    updatePriceNote('starterPriceNote', pricingData.starter.totalPrice);
+
+    updatePriceText('professionalOldPrice', pricingData.professional.oldPrice);
+    updatePriceText('professionalCurrentPrice', pricingData.professional.price);
+    updatePriceNote('professionalPriceNote', pricingData.professional.totalPrice, ' +2 mo free');
+
+    updatePriceText('enterpriseOldPrice', pricingData.enterprise.oldPrice);
+    updatePriceText('enterpriseCurrentPrice', pricingData.enterprise.price);
+    updatePriceNote('enterprisePriceNote', pricingData.enterprise.totalPrice);
+    showPricing();
+}
 
 // Hamburger Menu
 const hamburger = document.querySelector('.hamburger');
@@ -90,16 +115,21 @@ pricingButtons.forEach(button => {
     button.addEventListener('click', (e) => {
         const plan = e.target.dataset.plan;
         selectedPlan = pricingData[plan];
+
+        if (!selectedPlan) {
+            alert('Pricing is still loading. Please try again in a moment.');
+            return;
+        }
         
         // Display selected plan
         document.getElementById('selectedPlan').innerHTML = `
             <h3>${selectedPlan.name}</h3>
-            <p class="price" style="font-size: 2rem; color: var(--primary-color); margin: 1rem 0;">
-                $${selectedPlan.price} <span style="font-size: 1rem; color: var(--text-color);">/${selectedPlan.period}</span>
+            <p class="selected-plan-price">
+                ${currencyFormatter.format(selectedPlan.price)} <span class="selected-plan-period">/${selectedPlan.period}</span>
             </p>
             <p>${selectedPlan.features}</p>
-            <p style="margin-top: 1rem; font-weight: bold;">
-                Total: $${selectedPlan.totalPrice} (12 months)
+            <p class="selected-plan-total">
+                Total: ${currencyFormatter.format(selectedPlan.totalPrice)} (12 months)
             </p>
         `;
         
@@ -170,10 +200,9 @@ if (paymentForm) {
                     },
                     body: JSON.stringify({
                         paymentMethodId: paymentMethod.id,
-                        amount: Math.round(selectedPlan.totalPrice * 100), // Convert to cents
+                        planKey: selectedPlan.key,
                         customerName: name,
-                        customerEmail: email,
-                        planName: selectedPlan.name
+                        customerEmail: email
                     }),
                 });
                 
@@ -253,12 +282,13 @@ if (contactForm) {
                 },
                 body: JSON.stringify(data)
             });
+            const result = await response.json();
             
             if (response.ok) {
-                alert('Thank you for contacting us! We will get back to you shortly.');
+                alert(result.message || 'Thank you for contacting us! We will get back to you shortly.');
                 contactForm.reset();
             } else {
-                alert('There was an error sending your message. Please try again.');
+                alert(result.error || 'There was an error sending your message. Please try again.');
             }
         } catch (error) {
             console.error('Contact form error:', error);
@@ -298,4 +328,9 @@ document.querySelectorAll('.feature-card, .pricing-card, .testimonial-card').for
     card.style.transform = 'translateY(20px)';
     card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
     observer.observe(card);
+});
+
+loadPricingData().catch((error) => {
+    console.error('Pricing load error:', error);
+    showPricing();
 });

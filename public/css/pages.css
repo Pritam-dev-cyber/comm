@@ -1,0 +1,181 @@
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #374151;
+    background: #f4f7fb;
+}
+
+a {
+    color: inherit;
+}
+
+.page-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-header {
+    background: linear-gradient(135deg, #4f46e5, #10b981);
+    color: #fff;
+    padding: 24px 0 72px;
+}
+
+.page-nav,
+.page-content,
+.page-footer {
+    width: min(1080px, calc(100% - 32px));
+    margin: 0 auto;
+}
+
+.page-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.page-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.page-nav-links {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.page-nav-links a {
+    text-decoration: none;
+    opacity: 0.95;
+}
+
+.page-hero {
+    width: min(1080px, calc(100% - 32px));
+    margin: 48px auto 0;
+}
+
+.page-eyebrow {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.page-hero h1 {
+    margin: 18px 0 12px;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height: 1.1;
+}
+
+.page-hero p {
+    max-width: 760px;
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+
+.page-content {
+    flex: 1;
+    margin-top: -36px;
+    padding-bottom: 48px;
+}
+
+.page-card {
+    background: #fff;
+    border-radius: 22px;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    padding: 32px;
+}
+
+.page-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+}
+
+.page-section + .page-section {
+    margin-top: 24px;
+}
+
+.page-section h2 {
+    margin: 0 0 12px;
+    font-size: 1.4rem;
+    color: #111827;
+}
+
+.page-section p {
+    margin: 0 0 14px;
+    line-height: 1.7;
+}
+
+.page-list {
+    margin: 0;
+    padding-left: 20px;
+    line-height: 1.8;
+}
+
+.page-list li + li {
+    margin-top: 8px;
+}
+
+.page-side-card {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 20px;
+}
+
+.page-side-card h3 {
+    margin: 0 0 10px;
+    color: #111827;
+}
+
+.page-side-card p {
+    margin: 0 0 14px;
+    line-height: 1.65;
+}
+
+.page-cta {
+    display: inline-block;
+    padding: 12px 18px;
+    border-radius: 10px;
+    background: #4f46e5;
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.page-footer {
+    padding: 28px 0 40px;
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        padding-bottom: 56px;
+    }
+
+    .page-nav {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .page-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .page-card {
+        padding: 22px;
+        border-radius: 18px;
+    }
+}
