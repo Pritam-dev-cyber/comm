@@ -13,10 +13,13 @@ try {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number.parseInt(process.env.PORT || '3000', 10);
 const PRICING_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const FALLBACK_USD_TO_INR_RATE = Number(process.env.USD_TO_INR_FALLBACK || '87.44');
-const BASE_PLANS = {
+const EXCHANGE_RATE_URL = 'https://open.er-api.com/v6/latest/USD';
+const EXCHANGE_RATE_TIMEOUT_MS = 5000;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const BASE_PLANS = Object.freeze({
     starter: {
         key: 'starter',
         name: 'Starter Plan',
@@ -44,25 +47,32 @@ const BASE_PLANS = {
         period: 'monthly',
         features: 'Unlimited phone lines, Worldwide calling, 24/7 support'
     }
-};
+});
 
 let pricingCache = {
     exchangeRate: null,
     expiresAt: 0
 };
 let mailTransporter;
+let razorpayClient;
 
-// Razorpay configuration
 const Razorpay = require('razorpay');
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-});
 
 // Middleware
+app.disable('x-powered-by');
 app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.json({ limit: '16kb' }));
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    next();
+});
+app.use(express.static(path.join(__dirname, '../public'), {
+    etag: true,
+    maxAge: '1d'
+}));
 
 // Routes
 app.get('/', (req, res) => {
@@ -71,6 +81,50 @@ app.get('/', (req, res) => {
 
 function roundCurrency(value) {
     return Math.round(value * 100) / 100;
+}
+
+function normalizeString(value, maxLength = 200) {
+    if (typeof value !== 'string') {
+        return '';
+    }
+
+    return value.trim().replace(/\s+/g, ' ').slice(0, maxLength);
+}
+
+function escapeHtml(value) {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function hasUsableRazorpayConfig() {
+    const keyId = process.env.RAZORPAY_KEY_ID || '';
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || '';
+
+    return Boolean(
+        keyId &&
+        keySecret &&
+        keyId !== 'rzp_test_your_key_id_here' &&
+        keySecret !== 'your_razorpay_key_secret_here'
+    );
+}
+
+function getRazorpayClient() {
+    if (!hasUsableRazorpayConfig()) {
+        throw new Error('Razorpay keys are not configured in .env');
+    }
+
+    if (!razorpayClient) {
+        razorpayClient = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET
+        });
+    }
+
+    return razorpayClient;
 }
 
 function getMailTransporter() {
@@ -102,7 +156,7 @@ function getMailTransporter() {
 
 function fetchJson(url) {
     return new Promise((resolve, reject) => {
-        https.get(url, (response) => {
+        const request = https.get(url, (response) => {
             if (response.statusCode !== 200) {
                 reject(new Error(`Exchange rate request failed with status ${response.statusCode}`));
                 response.resume();
@@ -121,7 +175,12 @@ function fetchJson(url) {
                     reject(error);
                 }
             });
-        }).on('error', reject);
+        });
+
+        request.setTimeout(EXCHANGE_RATE_TIMEOUT_MS, () => {
+            request.destroy(new Error('Exchange rate request timed out'));
+        });
+        request.on('error', reject);
     });
 }
 
@@ -180,6 +239,14 @@ async function getPricingData() {
     };
 }
 
+function getSelectedPlan(planKey, pricing) {
+    return pricing.plans[planKey] || null;
+}
+
+function sendSafeError(res, statusCode, message) {
+    return res.status(statusCode).json({ error: message });
+}
+
 app.get('/api/pricing', async (req, res) => {
     try {
         const pricing = await getPricingData();
@@ -193,21 +260,32 @@ app.get('/api/pricing', async (req, res) => {
 });
 
 app.get('/api/payment-config', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
     res.json({
-        razorpayKeyId: process.env.RAZORPAY_KEY_ID || ''
+        razorpayKeyId: hasUsableRazorpayConfig() ? process.env.RAZORPAY_KEY_ID : ''
     });
 });
 
 app.post('/api/create-order', async (req, res) => {
     try {
-        const { customerEmail, customerName, planKey } = req.body;
+        const razorpay = getRazorpayClient();
+        const customerEmail = normalizeString(req.body.customerEmail, 320).toLowerCase();
+        const customerName = normalizeString(req.body.customerName, 120);
+        const planKey = normalizeString(req.body.planKey, 40);
+
+        if (!EMAIL_REGEX.test(customerEmail)) {
+            return sendSafeError(res, 400, 'A valid email is required');
+        }
+
+        if (!customerName) {
+            return sendSafeError(res, 400, 'Customer name is required');
+        }
+
         const pricing = await getPricingData();
-        const selectedPlan = pricing.plans[planKey];
+        const selectedPlan = getSelectedPlan(planKey, pricing);
 
         if (!selectedPlan) {
-            return res.status(400).json({
-                error: 'Invalid plan selected'
-            });
+            return sendSafeError(res, 400, 'Invalid plan selected');
         }
 
         const amount = Math.round(selectedPlan.totalPrice * 100);
@@ -234,14 +312,19 @@ app.post('/api/create-order', async (req, res) => {
         });
     } catch (error) {
         console.error('Payment error:', error);
-        res.status(500).json({
-            error: error.message
-        });
+        const safeMessage = error.message === 'Razorpay keys are not configured in .env'
+            ? error.message
+            : 'Failed to create order';
+        sendSafeError(res, 500, safeMessage);
     }
 });
 
 app.post('/api/verify-payment', async (req, res) => {
     try {
+        if (!hasUsableRazorpayConfig()) {
+            return sendSafeError(res, 500, 'Razorpay keys are not configured in .env');
+        }
+
         const {
             razorpay_order_id: razorpayOrderId,
             razorpay_payment_id: razorpayPaymentId,
@@ -249,20 +332,20 @@ app.post('/api/verify-payment', async (req, res) => {
         } = req.body;
 
         if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-            return res.status(400).json({
-                error: 'Missing payment verification data'
-            });
+            return sendSafeError(res, 400, 'Missing payment verification data');
         }
 
-        const expectedSignature = crypto
+        const expectedSignature = Buffer.from(crypto
             .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
             .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-            .digest('hex');
+            .digest('hex'));
+        const receivedSignature = Buffer.from(String(razorpaySignature));
 
-        if (expectedSignature !== razorpaySignature) {
-            return res.status(400).json({
-                error: 'Payment verification failed'
-            });
+        if (
+            expectedSignature.length !== receivedSignature.length ||
+            !crypto.timingSafeEqual(expectedSignature, receivedSignature)
+        ) {
+            return sendSafeError(res, 400, 'Payment verification failed');
         }
 
         res.json({
@@ -271,21 +354,20 @@ app.post('/api/verify-payment', async (req, res) => {
         });
     } catch (error) {
         console.error('Payment verification error:', error);
-        res.status(500).json({
-            error: 'Payment verification failed'
-        });
+        sendSafeError(res, 500, 'Payment verification failed');
     }
 });
 
 // Contact form endpoint
 app.post('/api/contact', async (req, res) => {
     try {
-        const { name, email, phone, message } = req.body;
+        const name = normalizeString(req.body.name, 120);
+        const email = normalizeString(req.body.email, 320).toLowerCase();
+        const phone = normalizeString(req.body.phone, 40);
+        const message = normalizeString(req.body.message, 4000);
 
-        if (!name || !email || !message) {
-            return res.status(400).json({
-                error: 'Name, email, and message are required'
-            });
+        if (!name || !message || !EMAIL_REGEX.test(email)) {
+            return sendSafeError(res, 400, 'Name, email, and message are required');
         }
 
         const transporter = getMailTransporter();
@@ -307,11 +389,11 @@ app.post('/api/contact', async (req, res) => {
             ].join('\n'),
             html: `
                 <h2>New contact form message</h2>
-                <p><strong>Name:</strong> ${name}</p>
-                <p><strong>Email:</strong> ${email}</p>
-                <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+                <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+                <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+                <p><strong>Phone:</strong> ${escapeHtml(phone || 'Not provided')}</p>
                 <p><strong>Message:</strong></p>
-                <p>${message.replace(/\n/g, '<br>')}</p>
+                <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
             `
         });
 
@@ -332,10 +414,7 @@ app.post('/api/contact', async (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({
-        error: 'Something went wrong!',
-        message: err.message
-    });
+    res.status(500).json({ error: 'Something went wrong!' });
 });
 
 // Start server
