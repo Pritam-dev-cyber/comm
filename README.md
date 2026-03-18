@@ -1,6 +1,6 @@
-# CommConnect - Business Communications Website
+# Laxsiy Connect - Business Communications Website
 
-A modern, fully-functional business communications website with integrated payment processing using Stripe.
+A modern business communications website for Laxsiy Connect with integrated Stripe payments, contact form email delivery, and structured static pages.
 
 ## Features
 
@@ -158,12 +158,12 @@ Edit CSS variables in `public/css/style.css`:
 ```
 
 ### Adding New Pages
-1. Create HTML file in `public/`
-2. Add route in `server/server.js`
-3. Link from navigation
+1. Place section pages under `public/pages/products`, `public/pages/support`, `public/pages/company`, or `public/pages/legal`
+2. Reuse `public/css/pages.css` for static content pages
+3. Link to them from `public/index.html` or the relevant page group
 
 ### Modifying Pricing Plans
-Update the `pricingData` object in `public/js/main.js` and corresponding HTML in `public/index.html`
+Update the server-side base pricing in `server/server.js`. The frontend pricing on `public/index.html` is populated from `/api/pricing`.
 
 ## Production Deployment
 
@@ -227,4 +227,4 @@ MIT License - feel free to use this project for your own purposes.
 
 ---
 
-**Note**: This is a demonstration website. Replace all placeholder content, images, and contact information with your actual business details before going live.
+**Note**: This project is set up for Laxsiy Connect. Review the remaining placeholder content, social links, and legal text before going live.

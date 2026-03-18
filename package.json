@@ -1,5 +1,5 @@
 {
-  "name": "commconnect-website",
+  "name": "laxsiy-website",
   "version": "1.0.0",
   "description": "Business communications website with payment integration",
   "main": "server/server.js",
